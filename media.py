@@ -18,6 +18,8 @@ class PygameMediaPlayer:
         self.playing = False
         self.music_files = []  # Initialize list for multiple music files
         self.album_index = 0  # Track the index of the current playing song in the album
+        self.volume = tk.DoubleVar()  # Variable to store volume
+        self.current_song_label = tk.Label(master, text="", bg="#2c3e50", fg="#ecf0f1")  # Label to display current playing song
 
         # Create widgets and apply CSS styling
         self.create_widgets()
@@ -53,7 +55,7 @@ class PygameMediaPlayer:
         self.prev_button.grid(row=2, column=0, padx=10, pady=(10, 5), sticky="ew")
 
         # Volume label
-        self.volume_label = tk.Label(self.master, text="Volume:", bg="#2c3e50", fg="#ecf0f1", font=("Helvetica", 10))
+        self.volume_label = tk.Label(self.master, text="Volume: 50.00%", bg="#2c3e50", fg="#ecf0f1", font=("Helvetica", 10))
         self.volume_label.grid(row=3, column=0, padx=10, pady=(10, 5), sticky="w")
 
         # Volume control slider
@@ -64,6 +66,9 @@ class PygameMediaPlayer:
         # Progress bar for track position
         self.progress_bar = ttk.Progressbar(self.master, orient="horizontal", length=300, mode="determinate", value=0)
         self.progress_bar.grid(row=4, column=0, columnspan=5, padx=10, pady=5)
+
+        # Add current song label
+        self.current_song_label.grid(row=5, column=0, columnspan=5, padx=10, pady=(10, 5), sticky="ew")
 
     def style_widgets(self):
         # Apply CSS styling
@@ -81,8 +86,11 @@ class PygameMediaPlayer:
                     print(f"Music file not found: {music_file}")
 
             if self.music_files:
+                self.album_index = 0  # Reset album index when new songs are added
                 self.file_label.config(text=f"Album: {len(self.music_files)} songs")
                 self.enable_buttons()  # Enable buttons after selection
+                self.load_music()  # Load the first song in the album
+                self.update_current_song_label()  # Update the current song label
             else:
                 print("No valid music files selected!")
 
@@ -94,7 +102,9 @@ class PygameMediaPlayer:
         self.prev_button.config(state=tk.NORMAL)
 
     def set_volume(self, volume):
+        volume_percentage = f"{float(volume):.2f}%"  # Format volume to two decimal places
         pygame.mixer.music.set_volume(float(volume) / 100)
+        self.volume_label.config(text=f"Volume: {volume_percentage}")
 
     def load_music(self):
         if self.music_files:
@@ -130,12 +140,18 @@ class PygameMediaPlayer:
             self.album_index = (self.album_index + 1) % len(self.music_files)
             self.load_music()
             self.play_music()
+            self.update_current_song_label()
 
     def prev_track(self):
         if self.music_files:
             self.album_index = (self.album_index - 1) % len(self.music_files)
             self.load_music()
             self.play_music()
+            self.update_current_song_label()
+
+    def update_current_song_label(self):
+        current_song = os.path.basename(self.music_files[self.album_index])
+        self.current_song_label.config(text=f"Current Song: {current_song}")
 
     def run(self):
         self.master.mainloop()
