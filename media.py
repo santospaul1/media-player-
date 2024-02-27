@@ -8,7 +8,7 @@ class PygameMediaPlayer:
     def __init__(self, master):
         self.master = master
         self.master.title("Python Media Player")
-        self.master.geometry("400x350")
+        self.master.geometry("400x400")
         self.master.configure(bg="#2c3e50")  # Set background color
 
         pygame.init()  # Initialize pygame
@@ -16,7 +16,8 @@ class PygameMediaPlayer:
 
         self.font = pygame.font.Font(None, 20)  # Use default font
         self.playing = False
-        self.music_file = None  # Initialize music_file
+        self.music_files = []  # Initialize list for multiple music files
+        self.album_index = 0  # Track the index of the current playing song in the album
 
         # Create widgets and apply CSS styling
         self.create_widgets()
@@ -71,14 +72,19 @@ class PygameMediaPlayer:
         self.master.option_add("*Horizontal.TProgressbar", {"background": "#3498db", "border": 0})
 
     def select_music(self):
-        music_file = filedialog.askopenfilename(title="Select Music File", filetypes=[("MP3 Files", "*.mp3")])
-        if music_file:
-            if os.path.exists(music_file):
-                self.music_file = music_file
-                self.file_label.config(text=f"Selected: {os.path.basename(self.music_file)}")
+        music_files = filedialog.askopenfilenames(title="Select Music Files", filetypes=[("MP3 Files", "*.mp3")])
+        if music_files:
+            for music_file in music_files:
+                if os.path.exists(music_file):
+                    self.music_files.append(music_file)
+                else:
+                    print(f"Music file not found: {music_file}")
+
+            if self.music_files:
+                self.file_label.config(text=f"Album: {len(self.music_files)} songs")
                 self.enable_buttons()  # Enable buttons after selection
             else:
-                print("Music file not found!")
+                print("No valid music files selected!")
 
     def enable_buttons(self):
         self.play_button.config(state=tk.NORMAL)
@@ -91,12 +97,15 @@ class PygameMediaPlayer:
         pygame.mixer.music.set_volume(float(volume) / 100)
 
     def load_music(self):
-        if self.music_file:
-            pygame.mixer.music.load(self.music_file)
+        if self.music_files:
+            pygame.mixer.music.load(self.music_files[self.album_index])
 
     def play_music(self):
-        self.load_music()
-        pygame.mixer.music.play()
+        if not pygame.mixer.music.get_busy():
+            self.load_music()
+            pygame.mixer.music.play()
+        else:
+            pygame.mixer.music.unpause()  # Resume from where it was paused
         self.playing = True
         self.play_button.config(state=tk.DISABLED)
         self.pause_button.config(state=tk.NORMAL)
@@ -117,10 +126,16 @@ class PygameMediaPlayer:
         self.stop_button.config(state=tk.DISABLED)
 
     def next_track(self):
-        pass  # Add functionality to play the next track
+        if self.music_files:
+            self.album_index = (self.album_index + 1) % len(self.music_files)
+            self.load_music()
+            self.play_music()
 
     def prev_track(self):
-        pass  # Add functionality to play the previous track
+        if self.music_files:
+            self.album_index = (self.album_index - 1) % len(self.music_files)
+            self.load_music()
+            self.play_music()
 
     def run(self):
         self.master.mainloop()
