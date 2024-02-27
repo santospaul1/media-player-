@@ -1,0 +1,89 @@
+import tkinter as tk
+from tkinter import filedialog
+import cv2
+
+class VideoPlayer(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Advanced Video Player")
+        self.geometry("800x600")
+
+        self.video_path = None
+        self.paused = False
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        # Video Canvas
+        self.canvas = tk.Canvas(self, width=640, height=480)
+        self.canvas.pack(pady=10)
+
+        # Control Buttons
+        control_frame = tk.Frame(self)
+        control_frame.pack(pady=5)
+
+        self.btn_open = tk.Button(control_frame, text="Open", command=self.open_file)
+        self.btn_open.grid(row=0, column=0, padx=5)
+
+        self.btn_play_pause = tk.Button(control_frame, text="Play", command=self.toggle_play_pause)
+        self.btn_play_pause.grid(row=0, column=1, padx=5)
+
+        self.btn_stop = tk.Button(control_frame, text="Stop", command=self.stop_video)
+        self.btn_stop.grid(row=0, column=2, padx=5)
+
+    def open_file(self):
+        file_path = filedialog.askopenfilename()
+        if file_path:
+            self.video_path = file_path
+            self.play_video()
+
+    def play_video(self):
+        if self.video_path is None:
+            return
+
+        cap = cv2.VideoCapture(self.video_path)
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Convert frame to RGB format for Tkinter display
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            # Resize frame to fit canvas
+            height, width, _ = frame.shape
+            ratio = min(640 / width, 480 / height)
+            frame = cv2.resize(frame, (int(width * ratio), int(height * ratio)))
+
+            # Convert frame to Tkinter format
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = tk.PhotoImage(data=cv2.imencode('.png', frame)[1].tobytes())
+
+            # Update canvas with new frame
+            self.canvas.create_image(0, 0, anchor=tk.NW, image=img)
+            self.canvas.image = img
+
+            if not self.paused:
+                self.update_idletasks()
+                self.update()
+
+        cap.release()
+
+    def toggle_play_pause(self):
+        if self.paused:
+            self.paused = False
+            self.btn_play_pause.config(text="Pause")
+            self.play_video()
+        else:
+            self.paused = True
+            self.btn_play_pause.config(text="Play")
+
+    def stop_video(self):
+        self.video_path = None
+        self.canvas.delete("all")
+        self.btn_play_pause.config(text="Play")
+
+if __name__ == "__main__":
+    app = VideoPlayer()
+    app.mainloop()
